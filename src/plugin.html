@@ -1,11 +1,61 @@
 <plugin>
-    <b>This plugin will rock</b>
-
+    <!-- this Plugin does not have any HTML content -->
     <script>
-        console.log('I am mounted to the page');
+        // Windy API modules are imported via '@windy/nameOfModule'
+        import map from '@windy/map';
 
-        this.onopen = () => console.log('I am opened');
-
-        this.onclose = () => console.log('I am being closed');
+        // custom marker for disturbance
+        const MARKER = encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' style='margin:auto;background:rgba(160, 88, 181,0);display:block;' width='200px' height='200px' viewBox='0 0 100 100' preserveAspectRatio='xMidYMid'><circle cx='50' cy='50' r='0' fill='none' stroke='#e90c59' stroke-width='17'>  <animate attributeName='r' repeatCount='indefinite' dur='1s' values='0;26' keyTimes='0;1' keySplines='0 0.2 0.8 1' calcMode='spline' begin='-0.5s'></animate>  <animate attributeName='opacity' repeatCount='indefinite' dur='1s' values='1;0' keyTimes='0;1' keySplines='0.2 0 0.8 1' calcMode='spline' begin='-0.5s'></animate></circle><circle cx='50' cy='50' r='0' fill='none' stroke='#46dff0' stroke-width='17'>  <animate attributeName='r' repeatCount='indefinite' dur='1s' values='0;26' keyTimes='0;1' keySplines='0 0.2 0.8 1' calcMode='spline'></animate>  <animate attributeName='opacity' repeatCount='indefinite' dur='1s' values='1;0' keyTimes='0;1' keySplines='0.2 0 0.8 1' calcMode='spline'></animate></circle></svg>");
+        const MARKER_ICON_URL = `data:image/svg+xml;utf8,${MARKER}`;
+        const Icon = L.icon({
+        iconUrl: MARKER_ICON_URL,
+        iconSize: [32, 32],
+        iconAnchor: [0, 0],
+        popupAnchor: [16, 16],
+        });
+        // url of datas | default = http://www.nrlmry.navy.mil/tcdat/sectors/ftp_sector_file
+        let url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6jEPD4JLNsppgMJ4wB8k4hpVHzc-8VKAkoQDwfMgeHHd18N3AEUhj8wbAgrCbKJiFzWGz_ZF0LkpV/pub?gid=0&single=true&output=csv"
+        Papa.parse(url, {
+        download: true,
+        complete: function(results) {
+            //number of distrubance
+            let ln = 0;
+            let nb_ln;
+            for(nb_ln in results.data){
+                ln++;
+            }
+            console.log('Search disturbance...');
+            console.log(ln + " disturbance.s detected.");
+            for (let i = 0; i < ln; i++) {
+                // The extracted results
+                let str = results.data[i][0];
+                // Pattern of the regex
+                let pattern = "([0-9]{1,2})(S|A|B|L|C|E|W|P)\\s+(\\w+)\\s([0-9]{1,2})([0-9]{1,2})([0-9]{1,2})\\s([0-9]{1,2})([0-9]{1,2})\\s+([0-9]{1,2}.[0-9]{1})(S|N)\\s+([0-9]{1,3}.[0-9]{1})(E|W)\\s(SHEM|IO|ATL|WPAC|CPAC|EPAC)\\s+([0-9]{1,3})\\s+([0-9]{1,4})|(NA)";
+                let out = str.match(pattern);
+                let nb = out[1]+out[2]
+                let lat;
+                let lon;
+                // determine if disturbance is in south or west hemisphere
+                if( out[10] == 'S'){
+                    lat = "-"+out[9];
+                } else {
+                    lat = out[9];
+                }
+                if( out[12] == 'W'){
+                    lon = "-"+out[11];
+                } else {
+                    lon = out[11];
+                }
+                let date = out[4]+"-"+out[5]+"-"+out[6]+" at "+out[7]+":"+out[8];
+                let name = out[3];
+                let pressure = out[15];
+                let wind = out[14];
+                //displays the markers...
+                L.marker({lat,lon},{icon: Icon}).addTo(map).bindPopup("<b>Date/time</b>:"+ date +" <br><b>N°</b>: "+ nb +"<br><b>Name</b>: "+ name +"<br><b>Pressure</b>: "+ pressure +" hPa<br><b>Wind(knots)</b>: "+ wind);
+        }
+    }
+        
+});
+    
     </script>
 </plugin>
